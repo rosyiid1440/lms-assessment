@@ -1,0 +1,28 @@
+// ---------------------------------------------------------
+// TRANSACTIONAL OUTBOX PATTERN
+// ---------------------------------------------------------
+
+model OutboxEvent {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  eventType     String @db.VarChar(255) // e.g., 'grade.published'
+  aggregateType String @db.VarChar(100) // e.g., 'ReportCard'
+  aggregateId   String @db.Uuid
+
+  payload Json // The full event data
+
+  status       EventStatus @default(PENDING)
+  attemptCount Int         @default(0) @db.SmallInt
+  lastError    String?     @db.Text
+
+  lockedUntil DateTime? // For Worker Leasing
+  publishedAt DateTime? // Exact time sent to broker
+  availableAt DateTime  @default(now())
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([status, availableAt]) // High performance index for the Background Worker polling
+  @@map("outbox_events")
+}

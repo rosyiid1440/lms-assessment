@@ -1,0 +1,91 @@
+model Subject {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  code        String  @db.VarChar(50) // e.g. "MAT-W"
+  name        String  @db.VarChar(100) // e.g. "Matematika Wajib"
+  description String? @db.Text
+  group       String? @db.VarChar(50) // e.g. "Muatan Nasional", "Peminatan"
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  courses Course[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, deletedAt])
+  @@map("subjects")
+}
+
+model GradeLevel {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  level       Int     @db.SmallInt // e.g. 10, 11, 12
+  phase       String  @db.VarChar(10) // e.g. "E", "F"
+  description String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  classes Class[]
+
+  @@unique([tenantId, level])
+  @@index([tenantId, deletedAt])
+  @@map("grade_levels")
+}
+
+model Major {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  code String @db.VarChar(50) // e.g. "MIPA"
+  name String @db.VarChar(100)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  classes Class[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, deletedAt])
+  @@map("majors")
+}
+
+model Classroom {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  code     String @db.VarChar(50) // e.g. "R-101"
+  name     String @db.VarChar(100)
+  capacity Int    @default(30) @db.SmallInt
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  classes Class[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, deletedAt])
+  @@map("classrooms")
+}

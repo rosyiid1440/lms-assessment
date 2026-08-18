@@ -1,0 +1,471 @@
+// ============================================================================
+// ASSESSMENT ENGINE (Enterprise CBT / LMS Assessment)
+// ----------------------------------------------------------------------------
+// Domain models: Question Bank (category/tag/version/attachment), Assessment,
+// Question Pool, Attempt, Answer, Review, Result, Analytics.
+// Conventions: tenant isolation via tenantId, soft delete via deletedAt,
+// audit via createdById/updatedById/deletedById, OCC via version.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// QUESTION BANK
+// ---------------------------------------------------------------------------
+
+model QuestionCategory {
+  id          String  @id @default(uuid()) @db.Uuid
+  version     Int     @default(1)
+  tenantId    String  @db.Uuid
+  parentId    String? @db.Uuid
+  name        String  @db.VarChar(200)
+  slug        String  @db.VarChar(220)
+  description String? @db.Text
+  orderIndex  Int     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  parent   QuestionCategory?       @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children QuestionCategory[]      @relation("CategoryTree")
+  questions AssessmentQuestion[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, parentId, deletedAt])
+  @@map("question_categories")
+}
+
+model QuestionTag {
+  id          String  @id @default(uuid()) @db.Uuid
+  tenantId    String  @db.Uuid
+  name        String  @db.VarChar(100)
+  slug        String  @db.VarChar(120)
+  color       String? @db.VarChar(20)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  questions AssessmentQuestionTag[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, deletedAt])
+  @@map("question_tags")
+}
+
+model AssessmentQuestion {
+  id         String @id @default(uuid()) @db.Uuid
+  version    Int    @default(1)
+  tenantId   String @db.Uuid
+  categoryId String? @db.Uuid
+  subjectId  String? @db.Uuid
+  classId    String? @db.Uuid
+  semester   String? @db.VarChar(40)
+  curriculum String? @db.VarChar(60)
+  competency String? @db.VarChar(100) // Kompetensi Dasar
+  learningOutcome String? @db.VarChar(200) // CPMK / Learning Outcome
+  topic      String? @db.VarChar(160)
+  phase      String? @db.VarChar(10)
+
+  type       QuestionType
+  difficulty QuestionDifficulty
+  bloomLevel BloomLevel
+  status     AssessmentQuestionStatus @default(DRAFT)
+
+  prompt      String   @db.Text // Rich text (Tiptap HTML + optional KaTeX)
+  explanation String?  @db.Text
+  hint        String?  @db.Text
+
+  // Scoring & marking
+  points        Float @default(1) @db.Real
+  negativeMarking Float? @default(0) @db.Real
+  estimatedTime Int  @default(60) @db.SmallInt
+  randomWeight  Boolean @default(false)
+
+  // Strategy payload (validated by Zod per question type)
+  options      Json?
+  answer       Json?  // canonical correct answer per type
+  caseData     Json?  // passage / case / comprehension stimulus
+
+  currentVersionId String? @unique @db.Uuid
+  usageCount       Int     @default(0)
+  duplicateOfId    String? @db.Uuid
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  category   QuestionCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags       AssessmentQuestionTag[]
+  versions   AssessmentQuestionVersion[] @relation("QuestionVersions")
+  activeVersion AssessmentQuestionVersion? @relation("QuestionActiveVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  attachments QuestionAttachment[]
+  assessments AssessmentQuestionRef[]
+  answers    Answer[]
+  reviews    Review[]
+
+  @@index([tenantId, deletedAt])
+  @@index([tenantId, type, status])
+  @@index([tenantId, categoryId])
+  @@index([tenantId, difficulty])
+  @@index([tenantId, bloomLevel])
+  @@index([tenantId, topic])
+  @@index([tenantId, learningOutcome])
+  @@index([tenantId, updatedAt])
+  @@map("assessment_questions")
+}
+
+model AssessmentQuestionVersion {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  questionId String @db.Uuid
+  versionNumber Int @default(1)
+  snapshot   Json   // full snapshot of the question at this version
+  createdById String? @db.Uuid
+  createdAt  DateTime @default(now())
+  deletedAt  DateTime?
+
+  question   AssessmentQuestion @relation("QuestionVersions", fields: [questionId], references: [id], onDelete: Cascade)
+  activeIn   AssessmentQuestion? @relation("QuestionActiveVersion")
+
+  @@unique([questionId, versionNumber])
+  @@index([tenantId])
+  @@map("assessment_question_versions")
+}
+
+model AssessmentQuestionTag {
+  tenantId   String @db.Uuid
+  questionId String @db.Uuid
+  tagId      String @db.Uuid
+  createdAt  DateTime @default(now())
+
+  question AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  tag      QuestionTag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, tagId])
+  @@index([tenantId, tagId])
+  @@map("assessment_question_tags")
+}
+
+model QuestionAttachment {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  questionId String @db.Uuid
+  kind       String @db.VarChar(20) // IMAGE|AUDIO|VIDEO|PDF|FILE
+  url        String @db.VarChar(500)
+  name       String @db.VarChar(255)
+  mimeType   String @db.VarChar(100)
+  sizeBytes  BigInt?
+  orderIndex Int    @default(0)
+  createdAt  DateTime @default(now())
+  createdById String? @db.Uuid
+  deletedAt  DateTime?
+
+  question AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, questionId])
+  @@map("question_attachments")
+}
+
+// ---------------------------------------------------------------------------
+// ASSESSMENT (the deliverable)
+// ---------------------------------------------------------------------------
+
+model Assessment {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  title     String @db.VarChar(255)
+  description String? @db.Text
+  instructions String? @db.Text
+
+  status   AssessmentStatus @default(DRAFT)
+  visibility AssessmentVisibility @default(CLASS)
+  courseId String? @db.Uuid
+  classId  String? @db.Uuid
+  subjectId String? @db.Uuid
+  teacherId String? @db.Uuid
+
+  // Scheduling & timing
+  openDate       DateTime?
+  closeDate      DateTime?
+  durationMinutes Int @default(60) @db.SmallInt
+  timezone       String @default("Asia/Jakarta") @db.VarChar(60)
+  attemptLimit   Int @default(1) @db.SmallInt
+
+  // Behavior
+  shuffleQuestions Boolean @default(false)
+  shuffleOptions   Boolean @default(false)
+  randomSelect     Boolean @default(false)
+  poolSource       QuestionPoolSource @default(MANUAL)
+  passingScore     Float @default(0) @db.Real
+  maxPoints        Float @default(0) @db.Real
+
+  // Feedback policy
+  showResult        Boolean @default(false)
+  showCorrectAnswer Boolean @default(false)
+  showExplanation   Boolean @default(false)
+  allowReview       Boolean @default(true)
+  allowResume       Boolean @default(false)
+  autoSubmit        Boolean @default(true)
+  lateSubmission    Boolean @default(false)
+  fullscreenMode    Boolean @default(false)
+  browserLock       Boolean @default(false)
+  showScoreByQuestion Boolean @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  questions AssessmentQuestionRef[]
+  poolRules AssessmentPoolRule[]
+  attempts  Attempt[]
+  results   AssessmentResult[]
+  analytics AssessmentAnalytics?
+
+  @@index([tenantId, deletedAt])
+  @@index([tenantId, status, openDate])
+  @@index([tenantId, classId])
+  @@index([tenantId, courseId])
+  @@index([tenantId, subjectId])
+  @@map("assessments")
+}
+
+model AssessmentQuestionRef {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @db.Uuid
+  assessmentId String @db.Uuid
+  questionId   String @db.Uuid
+  orderIndex   Int    @default(0)
+  points       Float  @default(1) @db.Real
+  createdAt    DateTime @default(now())
+  createdById  String? @db.Uuid
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question   AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers    Answer[]
+  reviews    Review[]
+
+  @@unique([assessmentId, questionId])
+  @@index([tenantId, assessmentId, orderIndex])
+  @@index([tenantId, questionId])
+  @@map("assessment_question_refs")
+}
+
+model AssessmentPoolRule {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @db.Uuid
+  assessmentId String @db.Uuid
+  poolSource   QuestionPoolSource @default(RANDOM_DIFFICULTY)
+  categoryId   String? @db.Uuid
+  tagId        String? @db.Uuid
+  difficulty   QuestionDifficulty?
+  bloomLevel   BloomLevel?
+  learningOutcome String? @db.VarChar(200)
+  topic        String? @db.VarChar(160)
+  count        Int @default(1) @db.SmallInt
+  orderIndex   Int @default(0)
+  createdAt    DateTime @default(now())
+  createdById  String? @db.Uuid
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, assessmentId])
+  @@map("assessment_pool_rules")
+}
+
+// ---------------------------------------------------------------------------
+// ATTEMPT ENGINE
+// ---------------------------------------------------------------------------
+
+model Attempt {
+  id         String @id @default(uuid()) @db.Uuid
+  version    Int    @default(1) // OCC for answer syncing
+  tenantId   String @db.Uuid
+  assessmentId String @db.Uuid
+  studentId  String @db.Uuid
+  attemptNumber Int @default(1)
+
+  status     AttemptStatus @default(IN_PROGRESS)
+  startedAt  DateTime
+  expectedEndTime DateTime
+  submittedAt DateTime?
+  resumedAt   DateTime?
+  timeSpentSeconds Int @default(0)
+  lastHeartbeatAt DateTime?
+
+  score       Float? @db.Real
+  rawScore    Float? @db.Real
+  totalPoints Float? @db.Real
+  correctCount Int @default(0)
+  wrongCount   Int @default(0)
+  skippedCount Int @default(0)
+
+  tabSwitches        Int @default(0) @db.SmallInt
+  fullscreenExits    Int @default(0) @db.SmallInt
+  networkDisconnects Int @default(0) @db.SmallInt
+  proctoringStatus   ProctoringStatus @default(CLEAN)
+  lockedAt  DateTime?
+  lockedById String?   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  answers    Answer[]
+  reviews    Review[]
+  result     AssessmentResult?
+
+  @@unique([assessmentId, studentId, attemptNumber])
+  @@index([tenantId, assessmentId, status])
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, status, expectedEndTime])
+  @@index([assessmentId, status])
+  @@map("attempts")
+}
+
+model Answer {
+  id           String @id @default(uuid()) @db.Uuid
+  version      Int    @default(1)
+  tenantId     String @db.Uuid
+  attemptId    String @db.Uuid
+  questionRefId String @db.Uuid
+  questionId   String @db.Uuid
+  questionVersionId String? @db.Uuid
+
+  response   Json?
+  isCorrect  Boolean?
+  points     Float  @default(0) @db.Real
+  maxPoints  Float  @default(1) @db.Real
+  gradingStatus AnswerGradingStatus @default(PENDING)
+  flagged    Boolean @default(false)
+  visited    Boolean @default(false)
+  timeSpentSeconds Int @default(0)
+  lastSavedAt DateTime?
+  manualScore Float? @db.Real
+  feedback   String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attempt     Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionRef AssessmentQuestionRef @relation(fields: [questionRefId], references: [id], onDelete: Cascade)
+  question    AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, questionId])
+  @@index([tenantId, attemptId])
+  @@index([tenantId, questionId])
+  @@index([tenantId, gradingStatus])
+  @@map("answers")
+}
+
+// ---------------------------------------------------------------------------
+// REVIEW (teacher grading)
+// ---------------------------------------------------------------------------
+
+model Review {
+  id         String @id @default(uuid()) @db.Uuid
+  version    Int    @default(1)
+  tenantId   String @db.Uuid
+  attemptId  String @db.Uuid
+  questionRefId String @db.Uuid
+  questionId String @db.Uuid
+  reviewerId String? @db.Uuid
+
+  status  ReviewStatus @default(PENDING)
+  score   Float @db.Real
+  feedback String? @db.Text
+  comment  String? @db.Text
+  privateNote String? @db.Text
+  rubric  Json?
+  overrideReason String? @db.VarChar(255)
+  regradeReason RegradeReason @default(SYSTEM)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionRef AssessmentQuestionRef @relation(fields: [questionRefId], references: [id], onDelete: Cascade)
+  question AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, questionId])
+  @@index([tenantId, attemptId])
+  @@index([tenantId, reviewerId])
+  @@map("reviews")
+}
+
+// ---------------------------------------------------------------------------
+// RESULT & ANALYTICS
+// ---------------------------------------------------------------------------
+
+model AssessmentResult {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @db.Uuid
+  assessmentId String @db.Uuid
+  attemptId    String @unique @db.Uuid
+  studentId    String @db.Uuid
+
+  rawScore   Float @db.Real
+  totalPoints Float @db.Real
+  percentage Float @db.Real
+  grade      String? @db.VarChar(10)
+  passed     Boolean
+  rank       Int?
+  correctCount Int @default(0)
+  wrongCount   Int @default(0)
+  skippedCount Int @default(0)
+  timeSpentSeconds Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  attempt    Attempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, assessmentId])
+  @@index([tenantId, studentId])
+  @@map("assessment_results")
+}
+
+model AssessmentAnalytics {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @db.Uuid
+  assessmentId String @unique @db.Uuid
+
+  participantCount  Int @default(0)
+  submittedCount    Int @default(0)
+  notSubmittedCount Int @default(0)
+  averageScore      Float @default(0) @db.Real
+  medianScore       Float @default(0) @db.Real
+  highestScore      Float @default(0) @db.Real
+  lowestScore       Float @default(0) @db.Real
+  stdDeviation      Float @default(0) @db.Real
+  passRate          Float @default(0) @db.Real
+
+  scoreHistogram    Json? // [{bucket, count}]
+  questionStats     Json? // per-question correct%/wrong%/skipped%/avgTime/optionDist
+  timeDistribution  Json? // [{bucket, count}]
+  difficultyIndex   Json? // per-question difficulty
+  discrimination    Json? // per-question discrimination index
+
+  computedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, assessmentId])
+  @@map("assessment_analytics")
+}

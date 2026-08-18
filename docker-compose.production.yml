@@ -1,0 +1,133 @@
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-security: &default-security
+  security_opt:
+    - no-new-privileges:true
+  init: true # Reaps zombie processes
+  read_only: true # Prevents malware/shell injection
+
+services:
+  postgres:
+    image: postgres:16.3-alpine3.20 # Pinned explicitly
+    container_name: lms_postgres_prod
+    profiles: ["core"]
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - lms_internal
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+
+  redis:
+    image: redis:7.2.5-alpine3.20 # Pinned explicitly
+    container_name: lms_redis_prod
+    profiles: ["core"]
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata_prod:/data
+    networks:
+      - lms_internal
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  app:
+    image: ghcr.io/your-school-org/lms-app:latest # Pulled from CI/CD
+    container_name: lms_api_prod
+    profiles: ["core"]
+    restart: unless-stopped
+    user: "1000:1000" # Run as non-root 'node' user
+    <<: *default-security
+    env_file: .env.production
+    ports:
+      - "127.0.0.1:5000:5000" # Expose internally for aaPanel Nginx
+    tmpfs:
+      - /tmp # Required for fast temp operations when read_only is true
+    volumes:
+      - storage_prod:/app/storage # Persistent upload directory for Asset Platform
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lms_internal
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5000/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+
+  worker:
+    image: ghcr.io/your-school-org/lms-worker:latest # Pulled from CI/CD
+    container_name: lms_worker_prod
+    profiles: ["core"]
+    restart: unless-stopped
+    user: "1000:1000"
+    <<: *default-security
+    stop_grace_period: 60s # Wait 60s for Outbox/Jobs to drain before killing
+    env_file: .env.production
+    tmpfs:
+      - /tmp # Required for worker healthcheck touch-file and operations
+    volumes:
+      - storage_prod:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lms_internal
+    logging: *default-logging
+    healthcheck:
+      # Worker touches this file every 10s. If older than 30s, worker is stuck.
+      test: ["CMD-SHELL", "test $(find /tmp/worker-heartbeat -mmin -0.5) || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+networks:
+  lms_internal:
+    driver: bridge
+
+volumes:
+  pgdata_prod:
+  redisdata_prod:
+  storage_prod:

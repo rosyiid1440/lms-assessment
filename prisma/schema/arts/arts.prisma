@@ -1,0 +1,272 @@
+// ---------------------------------------------------------
+// ARTS — SENI BUDAYA (Gallery, Performance, Apresiasi, Rubrik, Storyboard)
+// ---------------------------------------------------------
+
+// 1. VIRTUAL GALLERY & E-PORTFOLIO (Seni Rupa)
+model ArtsArtwork {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  studentId String @db.Uuid
+
+  title       String @db.VarChar(255)
+  description String? @db.Text
+  medium      ArtsMedium @default(LUKISAN)
+  semester    String? @db.VarChar(20)
+  status      ArtsArtworkStatus @default(DRAFT)
+
+  imageFileId String? @db.Uuid
+  imageUrl    String? @db.VarChar(1000)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  imageFile Asset? @relation(fields: [imageFileId], references: [id], onDelete: SetNull)
+  annotations ArtsAnnotation[]
+
+  @@index([tenantId, studentId, deletedAt])
+  @@map("arts_artworks")
+}
+
+model ArtsExhibition {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String @db.Uuid
+
+  title       String @db.VarChar(255)
+  description String? @db.Text
+  artworkIds  Json? // array of artwork UUIDs displayed in the virtual room
+  coverImageUrl String? @db.VarChar(1000)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("arts_exhibitions")
+}
+
+// Teacher's visual annotation (arrows / strokes / notes) drawn over the artwork
+model ArtsAnnotation {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  artworkId String @db.Uuid
+  authorId  String @db.Uuid
+
+  // JSON: [{ type: 'arrow'|'stroke'|'note', points: [[x,y]...], text?, color? }] normalized 0..1 coords
+  data      Json?
+  comment   String? @db.Text
+  createdAt DateTime @default(now())
+
+  artwork ArtsArtwork @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, artworkId])
+  @@map("arts_annotations")
+}
+
+// 2. PERFORMANCE STUDIO (Musik, Tari, Teater)
+model ArtsPerformance {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  studentId String @db.Uuid
+
+  title       String @db.VarChar(255)
+  description String? @db.Text
+  category    ArtsPerformanceCategory @default(MUSIK)
+  status      ArtsArtworkStatus @default(SUBMITTED)
+
+  mediaFileId String? @db.Uuid
+  mediaUrl    String? @db.VarChar(1000)
+  durationSec Int?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  mediaFile Asset? @relation(fields: [mediaFileId], references: [id], onDelete: SetNull)
+  timeComments ArtsTimeComment[]
+
+  @@index([tenantId, studentId, deletedAt])
+  @@map("arts_performances")
+}
+
+// Teacher feedback attached to a specific second of the performance
+model ArtsTimeComment {
+  id            String @id @default(uuid()) @db.Uuid
+  tenantId      String @db.Uuid
+  performanceId String @db.Uuid
+  authorId      String @db.Uuid
+
+  timestampSec Float @db.Real
+  body         String @db.Text
+
+  createdAt DateTime @default(now())
+
+  performance ArtsPerformance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, performanceId])
+  @@map("arts_time_comments")
+}
+
+// Interactive sheet music (not balok / not angka / tablatur) with reference audio
+model ArtsSheetMusic {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  title        String @db.VarChar(255)
+  description  String? @db.Text
+  sheetType    ArtsSheetType @default(NOT_ANGKA)
+  // JSON: [{ beat: 1, note: "C4", duration: 0.5, lyric? }] or tab rows
+  notesData    Json?
+  referenceAudioUrl String? @db.VarChar(1000)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("arts_sheet_musics")
+}
+
+// 3. APRESIASI & TUR VIRTUAL (Sejarah / Teori Seni)
+model ArtsVirtualTour {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  title         String @db.VarChar(255)
+  description   String? @db.Text
+  embedUrl      String @db.VarChar(1000)  // iframe src (Google Arts & Culture, street view, etc.)
+  coverImageUrl String? @db.VarChar(1000)
+  location      String? @db.VarChar(100)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("arts_virtual_tours")
+}
+
+// Interactive cultural map entry (Nusantara: tari, alat musik, batik, situs)
+model ArtsCulturalSite {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  name        String @db.VarChar(255)
+  region      String @db.VarChar(100)   // provinsi / daerah
+  latitude    Float  @db.Real
+  longitude   Float  @db.Real
+  category    String @db.VarChar(50)    // TARI | ALAT_MUSIK | BATIK | SITUS
+  description String? @db.Text
+  imageUrl    String? @db.VarChar(1000)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, region])
+  @@map("arts_cultural_sites")
+}
+
+// 4. RUBRIK & PEER REVIEW
+model ArtsRubric {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  title  String @db.VarChar(255)
+  branch ArtsBranch
+  // JSON: [{ key, label, description, maxScore }]
+  dimensions Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, branch])
+  @@map("arts_rubrics")
+}
+
+model ArtsPeerReview {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  reviewerId String @db.Uuid
+
+  artworkId   String? @db.Uuid
+  performanceId String? @db.Uuid
+  rubricId    String? @db.Uuid
+
+  // DAIE critique
+  description  String? @db.Text
+  formalAnalysis String? @db.Text
+  interpretation String? @db.Text
+  evaluation   String? @db.Text
+  // JSON: { dimensionKey: score }
+  scores       Json?
+  status       ArtsReviewStatus @default(SUBMITTED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId, artworkId])
+  @@index([tenantId, performanceId])
+  @@map("arts_peer_reviews")
+}
+
+model ArtsGrade {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  studentId String @db.Uuid
+  gradedById String? @db.Uuid
+
+  artworkId   String? @db.Uuid
+  performanceId String? @db.Uuid
+  rubricId    String? @db.Uuid
+
+  scores  Json?
+  score   Float? @db.Real
+  feedback String? @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, artworkId])
+  @@index([tenantId, performanceId])
+  @@map("arts_grades")
+}
+
+// 5. DIGITAL STORYBOARD KOLABORATIF (Teater / Tari)
+model ArtsStoryboard {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String @db.Uuid
+
+  title       String @db.VarChar(255)
+  description String? @db.Text
+  script      String? @db.Text            // collaborative script / naskah
+  genre       String? @db.VarChar(50)
+  status      ArtsStoryboardStatus @default(OPEN)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  frames ArtsStoryboardFrame[]
+
+  @@index([tenantId, deletedAt])
+  @@map("arts_storyboards")
+}
+
+model ArtsStoryboardFrame {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @db.Uuid
+  storyboardId String @db.Uuid
+  addedById    String @db.Uuid
+
+  orderIndex   Int @default(0)
+  sceneLabel   String? @db.VarChar(100)   // "Scene 1, shot A"
+  description  String? @db.Text           // what happens on screen
+  dialogue     String? @db.Text           // lines / blocking notes
+  imageFileId  String? @db.Uuid
+  imageUrl     String? @db.VarChar(1000)
+
+  createdAt DateTime @default(now())
+
+  storyboard ArtsStoryboard @relation(fields: [storyboardId], references: [id], onDelete: Cascade)
+  imageFile Asset? @relation(fields: [imageFileId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, storyboardId])
+  @@map("arts_storyboard_frames")
+}

@@ -1,0 +1,125 @@
+// ---------------------------------------------------------
+// STUDY — PLATFORM PENUNJANG PEMBELAJARAN SEMUA MAPEL
+// Model generik (subject = kode mapel) dipakai lintas mapel.
+// ---------------------------------------------------------
+
+// Materi pembelajaran per mapel (teks kaya per bagian)
+model StudyLesson {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  subject   String @db.VarChar(40)   // "matematika", "kimia", ...
+  title     String @db.VarChar(255)
+  summary   String? @db.Text
+  // JSON: [{ heading, body, imageUrl? }]
+  sections  Json?
+  status    VisibilityStatus @default(VISIBLE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([tenantId, subject, deletedAt])
+  @@map("study_lessons")
+}
+
+// Timeline peristiwa (Sejarah, Biologi, dll)
+model StudyTimelineEvent {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  subject    String @db.VarChar(40)
+  year       Int
+  periodLabel String @db.VarChar(60)
+  title      String @db.VarChar(255)
+  description String @db.Text
+  figure     String? @db.VarChar(120)
+  category   String? @db.VarChar(50)
+  icon       String? @db.VarChar(40)
+  orderIndex Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, subject])
+  @@map("study_timeline_events")
+}
+
+// Bank kuis per mapel (pertanyaan dalam JSON)
+model StudyQuiz {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  subject     String @db.VarChar(40)
+  title       String @db.VarChar(255)
+  description String? @db.Text
+  // JSON: [{ q, options[], correct, explain? }]
+  questions   Json?
+  status      VisibilityStatus @default(VISIBLE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  attempts StudyAttempt[]
+
+  @@index([tenantId, subject, deletedAt])
+  @@map("study_quizzes")
+}
+
+model StudyAttempt {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  quizId    String @db.Uuid
+  studentId String @db.Uuid
+
+  // JSON: [{ selected }]
+  answers      Json?
+  score        Float? @db.Real
+  correctCount Int    @default(0)
+  totalCount   Int    @default(0)
+  submittedAt DateTime @default(now())
+
+  quiz StudyQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, quizId, studentId])
+  @@map("study_attempts")
+}
+
+// Kartu hafalan per mapel (kosakata / rumus / istilah)
+model StudyFlashcard {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+
+  subject String @db.VarChar(40)
+  deck    String @db.VarChar(80)   // "alat tulis", "termokimia", ...
+  front   String @db.Text
+  back    String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, subject])
+  @@map("study_flashcards")
+}
+
+// Titik peta budaya / wilayah per mapel (Geografi, Sejarah, dll)
+model StudyMapPoint {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  subject    String @db.VarChar(40)
+  name       String @db.VarChar(255)
+  region     String @db.VarChar(100)
+  x          Int @default(0)   // koordinat konseptual peta 0..100
+  y          Int @default(0)
+  category   String? @db.VarChar(50)
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, subject])
+  @@map("study_map_points")
+}

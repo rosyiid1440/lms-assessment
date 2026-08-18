@@ -1,0 +1,36 @@
+// ---------------------------------------------------------
+// IMMUTABLE ACADEMIC LEDGER
+// ---------------------------------------------------------
+
+model GradeLedger {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  studentId  String @db.Uuid
+  courseId   String @db.Uuid
+  semesterId String @db.Uuid
+
+  // Traceability to the exact source
+  sourceType       GradeSourceType
+  referenceId      String          @db.Uuid // e.g., AssignmentId, ExamId
+  referenceVersion Int // e.g., AssignmentVersion
+
+  // Kurikulum Merdeka Competency Linkage (Optional, for granular ledgers)
+  cpId String? @db.VarChar(100)
+  tpId String? @db.VarChar(100)
+
+  // Append-Only Values
+  entryType   LedgerEntryType
+  scoreChange Float           @db.Real // e.g., +85 (initial), +5 (correction), -10 (penalty)
+  weight      Float           @default(1.0) @db.Real
+
+  reason String @db.VarChar(500) // Audit trail justification
+
+  // Notice the lack of updatedAt or deletedAt. This table is APPEND ONLY.
+  recordedAt   DateTime @default(now())
+  recordedById String   @db.Uuid // The teacher/system who made the entry
+
+  @@index([tenantId, studentId, courseId])
+  @@index([referenceId, entryType])
+  @@map("grade_ledgers")
+}

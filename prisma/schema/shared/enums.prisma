@@ -1,0 +1,660 @@
+// ---------------------------------------------------------
+// CENTRALIZED ENUMS (SHARED)
+// ---------------------------------------------------------
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  LOCKED
+  ARCHIVED
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  LOCKED
+  PASSWORD_RESET
+  LOGOUT
+  TOKEN_REUSE
+}
+
+enum TokenStatus {
+  ACTIVE
+  USED
+  REVOKED
+  COMPROMISED
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum AcademicYearStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum SemesterStatus {
+  DRAFT
+  PLANNING
+  RUNNING
+  GRADING
+  CLOSED
+  ARCHIVED
+}
+
+enum SemesterType {
+  ODD
+  EVEN
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  TRANSFERRED
+  GRADUATED
+  WITHDRAWN
+  ARCHIVED
+}
+
+enum TeacherAssignmentStatus {
+  ASSIGNED
+  ACTIVE
+  REASSIGNED
+  FINISHED
+  ARCHIVED
+}
+
+enum TeacherRoleType {
+  PRIMARY
+  ASSISTANT
+  OBSERVER
+}
+
+enum CourseStatus {
+  DRAFT
+  PLANNED
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum VisibilityStatus {
+  VISIBLE
+  HIDDEN
+  LOCKED
+}
+
+enum LessonStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MaterialType {
+  PDF
+  VIDEO
+  AUDIO
+  IMAGE
+  YOUTUBE
+  EXTERNAL_LINK
+  MARKDOWN
+  HTML
+  SCORM
+  H5P
+  OFFICE
+}
+
+enum AssetStatus {
+  UPLOADING
+  UPLOADED
+  SCANNING
+  PROCESSING
+  READY
+  ARCHIVED
+  DELETED
+}
+
+enum VirusScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  ERROR
+}
+
+enum StorageProviderType {
+  LOCAL
+  S3
+  CLOUDFLARE_R2
+  MINIO
+  GDRIVE
+}
+
+enum AssignmentStatus {
+  DRAFT
+  SCHEDULED
+  OPEN
+  CLOSED
+  GRADING
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AssignmentScope {
+  COURSE
+  INDIVIDUAL
+}
+
+enum SubmissionType {
+  FILE_ONLY
+  TEXT_ONLY
+  FILE_AND_TEXT
+  EXTERNAL_LINK
+}
+
+enum GradingStrategy {
+  MANUAL
+  RUBRIC
+  AUTO_GRADE
+}
+
+enum LatePolicy {
+  REJECT
+  ACCEPT_WARNING
+  ACCEPT_PENALTY
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  LATE_SUBMITTED
+  RETURNED_FOR_REVISION
+  GRADED
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  MULTIPLE_RESPONSE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+  NUMERIC
+  FILE_UPLOAD
+  PROGRAMMING
+  MATCHING
+  ORDERING
+  FILL_BLANK
+  DATE
+  CODE_SNIPPET
+  CASE_STUDY
+  READING_COMPREHENSION
+  IMAGE_BASED
+  AUDIO_BASED
+  VIDEO_BASED
+  HOTSPOT
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  HOTS
+}
+
+enum BloomLevel {
+  C1_REMEMBERING
+  C2_UNDERSTANDING
+  C3_APPLYING
+  C4_ANALYZING
+  C5_EVALUATING
+  C6_CREATING
+}
+
+enum ExamStatus {
+  DRAFT
+  SCHEDULED
+  READY
+  RUNNING
+  FINISHED
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  AUTO_SUBMITTED
+  MANUAL_SUBMITTED
+  EVALUATING
+  COMPLETED
+  ABANDONED
+  DISQUALIFIED
+}
+
+enum LedgerEntryType {
+  INITIAL_ENTRY
+  CORRECTION
+  REMEDIAL
+  PENALTY
+}
+
+enum GradeSourceType {
+  ASSIGNMENT
+  EXAM
+  PROJECT_P5
+  OBSERVATION
+  ATTENDANCE
+}
+
+enum FormulaCalculationType {
+  WEIGHTED_AVERAGE
+  BEST_OF
+  SUM
+}
+
+enum ReportCardStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MasteryLevel {
+  NOT_EVALUATED
+  NEEDS_INTERVENTION
+  APPROACHING
+  PROFICIENT
+  EXCEEDS
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+  DEAD_LETTER
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+  EMERGENCY
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  SMS
+  WHATSAPP
+  IN_APP
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum WebhookStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  RETRYING
+  DEAD
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum NoteType {
+  PLAIN
+  STICKY
+  TIMESTAMP
+  REFLECTION
+  QUOTE
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+}
+
+enum TeachingModuleStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+// --- ELT (English Language Teaching) ---
+enum EltSkillType {
+  SPEAKING
+  LISTENING
+  READING
+  WRITING
+  GRAMMAR
+  VOCABULARY
+}
+
+enum EltActivityType {
+  VOICE_RECORDING     // Speaking: record audio (read-aloud / monolog / pronunciation)
+  PRONUNCIATION_AI    // Speaking: pronunciation practice (score by recognition)
+  LISTENING_VIDEO     // Listening: video/audio player + interactive transcript
+  LISTENING_TRANSCRIPT// Listening: clickable transcript (dual subtitles
+  READING_PASSAGE     // Reading: passage with vocabulary annotations
+  WRITING_ESSAY       // Writing: essay / paragraph
+  GRAMMAR_SPELL       // Grammar: essay with grammar & spelling checker
+  CLOZE_TEST          // Grammar/Vocab: fill-in-the-blank cloze test
+  VOCAB_FLASHCARD     // Vocabulary: digital flashcards (spaced repetition)
+  VOCAB_QUIZ          // Vocabulary: quiz (leaderboard/gamified)
+  DISCUSSION          // Collaborative: threaded discussion (text/voice)
+  PEER_REVIEW         // Collaborative: peer review of writing/audio
+}
+
+enum EltAttemptStatus {
+  DRAFT
+  SUBMITTED
+  GRADED
+  RETURNED
+}
+
+// --- INFORMATICS / CODING ---
+enum ChallengeDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum CodingLanguage {
+  PYTHON
+  JAVASCRIPT
+  CPP
+  JAVA
+  HTML
+  CSS
+  SQL
+}
+
+enum SubmissionEvalStatus {
+  PENDING
+  ACCEPTED
+  WRONG_ANSWER
+  COMPILE_ERROR
+  RUNTIME_ERROR
+  TIME_LIMIT
+}
+
+enum InfraBadgeType {
+  CHALLENGE_EASY
+  CHALLENGE_MEDIUM
+  CHALLENGE_HARD
+  STREAK
+  SCORE
+  COLLAB
+}
+
+// --- PHYSICS ---
+enum PhysicsSimulationType {
+  PROJECTILE       // Gerak parabola
+  WAVE             // Gelombang transversal (sinus)
+  CIRCUIT          // Sirkuit listrik (Hukum Ohm)
+  FREE_FALL        // Jatuh bebas / gravitasi
+  SPRING           // Getaran pegas (SHM)
+}
+
+enum PhysicsLabStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum PhysicsQuestionFormat {
+  PARAMETRIC       // Nilai angka diacak per siswa
+  STATIC
+}
+
+enum PhysicsQuestionField {
+  MECHANICS
+  THERMODYNAMICS
+  WAVE_OPTICS
+  ELECTRICITY
+  MAGNETISM
+  MODERN
+}
+
+enum PhysicsWorkStatus {
+  PENDING
+  REVIEWED
+  RETURNED
+}
+
+enum PhysicsDataStatus {
+  DRAFT
+  SUBMITTED
+  GRADED
+}
+
+enum PhysicsVideoStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PhysicsQuizType {
+  DURING_VIDEO     // Muncul di detik tertentu
+  AFTER_VIDEO
+}
+
+// --- PAI (Islamic Education) ---
+enum PaiRecitationStatus {
+  SUBMITTED
+  REVIEWED
+  APPROVED
+  RETURNED
+}
+
+enum PaiSurahType {
+  JUZ
+  SURAH
+  AYAT
+}
+
+enum PaiIbadahStatus {
+  SUBMITTED
+  REVIEWED
+}
+
+enum PaiIbadahType {
+  FARDHU       // wajib: sholat 5 waktu, puasa
+  SUNNAH       // sunnah: dhuha, tahajud, rawatib
+  QURAN        // membaca / murajaah Al-Qur'an
+  SADAQAH      // sedekah / charity
+  OTHER
+}
+
+enum PaiGoalStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum PaiDiscussionStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum PaiQuestionStatus {
+  PENDING
+  ANSWERED
+  CLOSED
+}
+
+enum PaiMoralStatus {
+  SUBMITTED
+  GRADED
+  RETURNED
+}
+
+enum PaiStoryStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// --- ARTS (Seni Budaya) ---
+enum ArtsBranch {
+  TARI
+  SENI_RUPA
+  TEATER
+  MUSIK
+}
+
+enum ArtsArtworkStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RETURNED
+}
+
+enum ArtsMedium {
+  LUKISAN
+  DESAIN_GRAFIS
+  KRIYA
+  FOTOGRAFI
+  MAKEUP
+  OTHER
+}
+
+enum ArtsPerformanceCategory {
+  MUSIK
+  TARI
+  TEATER
+}
+
+enum ArtsSheetType {
+  NOT_BALOK
+  NOT_ANGKA
+  TABLATUR
+}
+
+enum ArtsReviewStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum ArtsStoryboardStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+// --- ASSESSMENT ENGINE (CBT / LMS) ---
+enum AssessmentQuestionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AssessmentStatus {
+  DRAFT
+  SCHEDULED
+  READY
+  RUNNING
+  FINISHED
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionPoolSource {
+  MANUAL
+  QUESTION_BANK
+  RANDOM_CATEGORY
+  RANDOM_TAG
+  RANDOM_DIFFICULTY
+  RANDOM_LEARNING_OUTCOME
+  COMBINATION
+}
+
+enum QuestionFlagStatus {
+  UNANSWERED
+  ANSWERED
+  FLAGGED
+  ANSWERED_AND_FLAGGED
+}
+
+enum AnswerGradingStatus {
+  PENDING
+  AUTO_GRADED
+  MANUAL_GRADED
+  OVERRIDDEN
+  REGRADED
+}
+
+enum ReviewStatus {
+  PENDING
+  COMPLETED
+}
+
+enum RegradeReason {
+  SYSTEM
+  MANUAL
+  APPEAL
+  OVERRIDE
+  CORRECTION
+}
+
+enum AssessmentVisibility {
+  PRIVATE
+  PUBLIC
+  CLASS
+  COURSE
+}
+
+enum ProctoringStatus {
+  CLEAN
+  WARNING
+  VIOLATION
+  LOCKED
+  DISQUALIFIED
+}

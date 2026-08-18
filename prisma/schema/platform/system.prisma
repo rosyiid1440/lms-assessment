@@ -1,0 +1,39 @@
+// ---------------------------------------------------------
+// SYSTEM CONFIGURATION & GLOBAL FILES
+// ---------------------------------------------------------
+
+model SystemSetting {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  key   String @db.VarChar(100) // e.g., 'MAX_UPLOAD_SIZE'
+  value String @db.Text
+  type  String @db.VarChar(50) // 'STRING', 'NUMBER', 'BOOLEAN', 'JSON'
+  scope String @db.VarChar(50) // 'GLOBAL', 'SCHOOL', 'USER'
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  @@unique([tenantId, key])
+  @@map("system_settings")
+}
+
+model StoredFile {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  fingerprint  String @db.VarChar(255)
+  originalName String @db.VarChar(500)
+  mimeType     String @db.VarChar(100)
+  sizeBytes    BigInt @default(0)
+
+  storageProvider String @db.VarChar(50)
+  storageKey      String @db.VarChar(1000)
+
+  contextType String @db.VarChar(50) // 'AVATAR', 'LOGO', 'AUDIT_EVIDENCE'
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, contextType])
+  @@map("stored_files")
+}

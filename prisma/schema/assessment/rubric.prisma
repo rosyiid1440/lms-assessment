@@ -1,0 +1,56 @@
+// ---------------------------------------------------------
+// RUBRIC ENGINE (REUSABLE)
+// ---------------------------------------------------------
+
+model Rubric {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+  isReusable  Boolean @default(false) // Can be saved to library
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  criteria RubricCriterion[]
+
+  @@index([tenantId, deletedAt])
+  @@map("rubrics")
+}
+
+model RubricCriterion {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  rubricId String @db.Uuid
+
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+  weight      Float   @default(1.0) @db.Real // Relative importance
+  order       Int     @db.SmallInt
+
+  rubric Rubric        @relation(fields: [rubricId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  scales RubricScale[]
+
+  @@unique([rubricId, order])
+  @@index([tenantId])
+  @@map("rubric_criteria")
+}
+
+model RubricScale {
+  id          String @id @default(uuid()) @db.Uuid
+  tenantId    String @db.Uuid
+  criterionId String @db.Uuid
+
+  points      Float  @db.Real
+  label       String @db.VarChar(100) // e.g., "Excellent", "Needs Improvement"
+  description String @db.Text
+
+  criterion RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([criterionId, points]) // Prevent duplicate points within the same criterion
+  @@index([tenantId])
+  @@map("rubric_scales")
+}

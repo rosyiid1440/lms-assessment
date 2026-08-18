@@ -1,0 +1,30 @@
+// ---------------------------------------------------------
+// TENANT AGGREGATE ROOT
+// ---------------------------------------------------------
+
+model Tenant {
+  id      String @id @default(uuid()) @db.Uuid
+  version Int    @default(1)
+
+  name   String       @db.VarChar(255)
+  code   String       @unique @db.VarChar(50) // Global unique for subdomain routing
+  status TenantStatus @default(ACTIVE)
+
+  plan       String  @default("FREE") @db.VarChar(50)
+  timezone   String  @default("Asia/Jakarta") @db.VarChar(50)
+  locale     String  @default("id-ID") @db.VarChar(10)
+  logoFileId String? @db.Uuid
+
+  settings Json? // Fallback for highly dynamic configurations (e.g. SMTP config per tenant)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  @@index([deletedAt])
+  @@index([status])
+  @@map("tenants")
+}

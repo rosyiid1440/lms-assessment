@@ -1,0 +1,99 @@
+// ---------------------------------------------------------
+// PERSONAL LEARNING WORKSPACE
+// ---------------------------------------------------------
+
+model WorkspaceFolder {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  studentId String  @db.Uuid
+  name      String  @db.VarChar(100)
+  color     String? @db.VarChar(50)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notes     Note[]
+  bookmarks Bookmark[]
+
+  @@index([tenantId, studentId])
+  @@map("workspace_folders")
+}
+
+model Note {
+  id        String  @id @default(uuid()) @db.Uuid
+  version   Int     @default(1)
+  tenantId  String  @db.Uuid
+  studentId String  @db.Uuid
+  folderId  String? @db.Uuid
+
+  courseId   String  @db.Uuid
+  lessonId   String? @db.Uuid
+  materialId String? @db.Uuid
+
+  type              NoteType
+  encryptedContent  String   @db.Text
+  searchableContent String   @db.Text
+
+  // AI Readiness
+  summary         String? @db.Text
+  embeddingStatus String  @default("PENDING") @db.VarChar(50)
+
+  // Offline Sync
+  syncStatus   SyncStatus @default(SYNCED)
+  lastDeviceId String     @db.VarChar(100)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  folder WorkspaceFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([tenantId, studentId, courseId])
+  @@index([embeddingStatus])
+  @@map("workspace_notes")
+}
+
+model Bookmark {
+  id        String  @id @default(uuid()) @db.Uuid
+  version   Int     @default(1)
+  tenantId  String  @db.Uuid
+  studentId String  @db.Uuid
+  folderId  String? @db.Uuid
+
+  courseId   String  @db.Uuid
+  lessonId   String  @db.Uuid
+  materialId String? @db.Uuid
+
+  title           String  @db.VarChar(255)
+  thumbnail       String? @db.VarChar(500)
+  positionContext Json // E.g., { "page": 18 }, { "timestamp": "00:12:38" }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  folder WorkspaceFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([tenantId, studentId, courseId])
+  @@map("workspace_bookmarks")
+}
+
+model ReadingPosition {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  studentId String @db.Uuid
+
+  courseId   String  @db.Uuid
+  lessonId   String  @db.Uuid
+  materialId String? @db.Uuid
+
+  positionContext Json
+  lastDeviceId    String @db.VarChar(100)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, courseId]) // Only one active reading position per course per student
+  @@index([tenantId])
+  @@map("workspace_reading_positions")
+}

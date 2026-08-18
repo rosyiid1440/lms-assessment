@@ -1,0 +1,135 @@
+// ---------------------------------------------------------
+// INFORMATICS / CODING LAB
+// Hero coding challenges (competitive programming), embedded
+// autograder, technical projects (multi-file / Git), badges.
+// ---------------------------------------------------------
+
+model CodingChallenge {
+  id          String @id @default(uuid()) @db.Uuid
+  version     Int    @default(1)
+  tenantId    String @db.Uuid
+  courseId    String? @db.Uuid
+  createdById String? @db.Uuid
+
+  title       String @db.VarChar(255)
+  description String @db.Text
+  difficulty  ChallengeDifficulty @default(EASY)
+  language    CodingLanguage @default(PYTHON)
+  score       Int @default(50)
+  points      Int @default(10)
+  starterCode String? @db.Text
+  testCases   Json? // [{ input, expected }]
+  status      VisibilityStatus @default(VISIBLE)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  submissions CodingAttempt[]
+
+  @@index([tenantId, deletedAt])
+  @@index([courseId, difficulty])
+  @@map("coding_challenges")
+}
+
+model CodingAttempt {
+  id           String @id @default(uuid()) @db.Uuid
+  version      Int    @default(1)
+  tenantId     String @db.Uuid
+  challengeId  String @db.Uuid
+  studentId    String @db.Uuid
+
+  code         String @db.Text
+  language     CodingLanguage
+  status       SubmissionEvalStatus @default(PENDING)
+  passedTests  Int @default(0)
+  totalTests   Int @default(0)
+  output       String? @db.Text
+  compileError String? @db.Text
+  runtimeMs    Int? @db.SmallInt
+  score        Int @default(0)
+  acceptedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  challenge CodingChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, studentId])
+  @@index([tenantId])
+  @@map("coding_attempts")
+}
+
+model CodingProject {
+  id          String @id @default(uuid()) @db.Uuid
+  version     Int    @default(1)
+  tenantId    String @db.Uuid
+courseId    String? @db.Uuid
+  createdById String? @db.Uuid
+  title       String @db.VarChar(255)
+  description String @db.Text
+  dueDate     DateTime?
+  maxScore    Float @default(10)
+  groupGit    Boolean @default(true)
+  status      VisibilityStatus @default(VISIBLE)
+  rubric      Json?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  publishedAt DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  submissions CodingProjectSubmission[]
+
+  @@index([tenantId, deletedAt])
+  @@index([courseId])
+  @@map("coding_projects")
+}
+
+model CodingProjectSubmission {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  projectId String @db.Uuid
+  studentId String @db.Uuid
+  groupId   String? @db.Uuid
+
+  files      Json?  // [{ name, content }]
+  githubUrl  String? @db.VarChar(1000)
+  branch     String? @db.VarChar(255)
+  similarity Float? @db.Real
+  similarTo  String? @db.VarChar(500)
+  score      Float? @db.Real
+  feedback   String? @db.Text
+  status     SubmissionEvalStatus @default(PENDING)
+  submittedAt DateTime?
+  gradedAt    DateTime?
+  gradedById  String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project CodingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("coding_project_submissions")
+}
+
+model CodingBadge {
+  id   String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  name String @db.VarChar(100)
+  desc String @db.Text
+  type InfraBadgeType
+  threshold Int @default(1)
+  icon String? @db.VarChar(100)
+  userId String? @db.Uuid // null = template; else earned by user
+  earnedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("coding_badges")
+}

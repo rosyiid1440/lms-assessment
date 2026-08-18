@@ -1,0 +1,13 @@
+import { JSDOM } from 'jsdom';
+const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' });
+global.window = dom.window;
+global.document = dom.window.document;
+global.navigator = dom.window.navigator;
+global.HTMLElement = dom.window.HTMLElement;
+global.Element = dom.window.Element;
+global.Node = dom.window.Node;
+global.getComputedStyle = dom.window.getComputedStyle;
+global.Blob = dom.window.Blob;
+global.Image = dom.window.Image;
+global.ImageData = dom.window.ImageData;
+const { default: run } = await import('/tmp/pptpreview-bundle.mjs');

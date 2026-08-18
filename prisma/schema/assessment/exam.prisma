@@ -1,0 +1,75 @@
+// ---------------------------------------------------------
+// EXAM PLATFORM (CBT & PROCTORING)
+// ---------------------------------------------------------
+
+model Exam {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+  courseId String @db.Uuid
+
+  title       String     @db.VarChar(255)
+  instruction String?    @db.Text
+  status      ExamStatus @default(DRAFT)
+
+  // Timing Policies
+  scheduledStart  DateTime?
+  scheduledEnd    DateTime?
+  durationMinutes Int       @db.SmallInt
+
+  // Randomization & Engine
+  shuffleQuestions   Boolean @default(false)
+  shuffleChoices     Boolean @default(false)
+  autoPublishResult  Boolean @default(false)
+  showCorrectAnswers Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  attempts ExamAttempt[]
+
+  @@index([tenantId, deletedAt])
+  @@index([courseId, status])
+  @@map("exams")
+}
+
+// ---------------------------------------------------------
+// EXAM ATTEMPT (Aggregate for Fault-Tolerance & Proctoring)
+// ---------------------------------------------------------
+
+model ExamAttempt {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1) // OCC for syncing answers
+  tenantId  String @db.Uuid
+  examId    String @db.Uuid
+  studentId String @db.Uuid
+
+  status AttemptStatus @default(IN_PROGRESS)
+
+  // Authoritative Timing
+  startedAt       DateTime
+  expectedEndTime DateTime
+  submittedAt     DateTime?
+
+  // Proctoring Metadata Foundation
+  lastHeartbeatAt    DateTime?
+  tabSwitches        Int       @default(0) @db.SmallInt
+  fullscreenExits    Int       @default(0) @db.SmallInt
+  networkDisconnects Int       @default(0) @db.SmallInt
+
+  // Analytics
+  score            Float? @db.Real
+  timeSpentSeconds Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([examId, studentId]) // Usually one attempt per student, unless retakes are managed via versioning/logic
+  @@index([tenantId])
+  @@index([examId, status])
+  @@index([status, expectedEndTime]) // Very important for Auto-Submit Cron Job
+  @@map("exam_attempts")
+}

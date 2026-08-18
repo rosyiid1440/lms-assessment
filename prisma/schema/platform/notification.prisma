@@ -1,0 +1,58 @@
+// ---------------------------------------------------------
+// NOTIFICATION PLATFORM
+// ---------------------------------------------------------
+
+model NotificationTemplate {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  code      String   @db.VarChar(100) // e.g., 'GRADE_PUBLISHED_EMAIL'
+  subject   String   @db.VarChar(255)
+  bodyHtml  String   @db.Text
+  bodyText  String   @db.Text
+  variables String[] // e.g., ['studentName', 'courseName']
+
+  @@unique([tenantId, code])
+  @@map("notification_templates")
+}
+
+model Notification {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  recipientId String @db.Uuid
+  topic       String @db.VarChar(255)
+
+  title     String  @db.VarChar(255)
+  content   String  @db.Text
+  actionUrl String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+
+  deliveries NotificationDelivery[]
+
+  @@index([tenantId, recipientId, createdAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String @id @default(uuid()) @db.Uuid
+  notificationId String @db.Uuid
+
+  channel       NotificationChannel
+  providerId    String?             @db.VarChar(100) // e.g., SendGrid Message ID
+  targetContact String              @db.VarChar(255) // email, phone, FCM token
+
+  status   DeliveryStatus @default(PENDING)
+  errorLog String?        @db.Text
+
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([notificationId, channel])
+  @@index([status])
+  @@map("notification_deliveries")
+}

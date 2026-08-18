@@ -1,0 +1,59 @@
+// ---------------------------------------------------------
+// ROLE & PERMISSIONS
+// ---------------------------------------------------------
+
+model Role {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  name        String  @db.VarChar(100)
+  slug        String  @db.VarChar(100)
+  isSystem    Boolean @default(false) // System roles cannot be deleted
+  description String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([deletedAt])
+  @@map("roles")
+}
+
+model Permission {
+  id     String @id @default(uuid()) @db.Uuid
+  module String @db.VarChar(100)
+  action String @db.VarChar(50)
+  slug   String @unique @db.VarChar(150) // e.g. "users:update"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // No soft delete needed for raw permissions (system level data)
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid()) @db.Uuid
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@map("role_permissions")
+}

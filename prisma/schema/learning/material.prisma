@@ -1,0 +1,51 @@
+model Material {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+  lessonId String @db.Uuid
+
+  type       MaterialType
+  order      Int          @db.SmallInt
+  isRequired Boolean      @default(true)
+
+  currentVersionId String? @unique @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  activeVersion MaterialVersion?  @relation("ActiveVersion", fields: [currentVersionId], references: [id])
+  versions      MaterialVersion[] @relation("AllMaterialVersions")
+
+  @@unique([lessonId, order])
+  @@index([tenantId])
+  @@map("materials")
+}
+
+model MaterialVersion {
+  id         String  @id @default(uuid()) @db.Uuid
+  tenantId   String  @db.Uuid
+  materialId String  @db.Uuid
+  assetId    String? @db.Uuid
+
+  versionNumber Int     @default(1)
+  title         String  @db.VarChar(255)
+  description   String? @db.Text
+  contentHash   String  @db.VarChar(255)
+
+  searchableContent String? @db.Text
+  metadata          Json?
+
+  createdAt   DateTime @default(now())
+  createdById String?  @db.Uuid
+
+  material Material @relation("AllMaterialVersions", fields: [materialId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  asset    Asset?   @relation(fields: [assetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  activeInMaterial Material? @relation("ActiveVersion")
+
+  @@unique([materialId, versionNumber])
+  @@index([tenantId])
+  @@map("material_versions")
+}

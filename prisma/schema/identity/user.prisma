@@ -1,0 +1,100 @@
+// ---------------------------------------------------------
+// USER AGGREGATE ROOT
+// ---------------------------------------------------------
+
+model User {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1) // OCC Field
+  tenantId String @db.Uuid
+
+  email        String     @db.VarChar(255)
+  passwordHash String     @db.VarChar(255)
+  status       UserStatus @default(PENDING)
+  roleId       String     @db.Uuid
+  avatarFileId String?    @db.Uuid // Reference to File Domain
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  // Relations
+  role           Role            @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sessions       UserSession[]
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// ---------------------------------------------------------
+// PROFILES (Child Entities)
+// ---------------------------------------------------------
+
+model StudentProfile {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  userId   String @unique @db.Uuid
+
+  nis         String    @db.VarChar(50)
+  nisn        String    @db.VarChar(50)
+  fullName    String    @db.VarChar(255)
+  gender      Gender
+  birthPlace  String?   @db.VarChar(100)
+  birthDate   DateTime? @db.Date
+  religion    String?   @db.VarChar(50)
+  address     String?   @db.Text
+  phone       String?   @db.VarChar(20)
+  parentName  String?   @db.VarChar(255)
+  parentPhone String?   @db.VarChar(20)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  studentEnrollments StudentEnrollment[]
+  attendanceRecords  AttendanceRecord[]
+
+  @@unique([tenantId, nis])
+  @@unique([tenantId, nisn])
+  @@index([tenantId])
+  @@map("student_profiles")
+}
+
+model TeacherProfile {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  userId   String @unique @db.Uuid
+
+  nip            String    @db.VarChar(50)
+  nuptk          String?   @db.VarChar(50)
+  fullName       String    @db.VarChar(255)
+  gender         Gender
+  birthPlace     String?   @db.VarChar(100)
+  birthDate      DateTime? @db.Date
+  religion       String?   @db.VarChar(50)
+  address        String?   @db.Text
+  phone          String?   @db.VarChar(20)
+  specialization String?   @db.VarChar(255)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  teacherAssignments TeacherAssignment[]
+  courses            Course[]
+  coCourses          CourseCoTeacher[]
+
+  @@unique([tenantId, nip])
+  @@index([tenantId])
+  @@map("teacher_profiles")
+}

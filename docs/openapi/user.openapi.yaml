@@ -1,0 +1,174 @@
+paths:
+  /api/v1/users:
+    get:
+      summary: Search users with filtering and pagination
+      tags:
+        - Identity (Users)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, ACTIVE, SUSPENDED, LOCKED, ARCHIVED]
+      responses:
+        '200':
+          description: Paginated list of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create a new user
+      tags:
+        - Identity (Users)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/users/{id}/activate:
+    post:
+      summary: Activate a pending or suspended user (Idempotent)
+      tags:
+        - Identity (Users)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - expectedUpdatedAt
+              properties:
+                expectedUpdatedAt:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Activated successfully
+        '409':
+          description: Conflict (OCC failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+components:
+  schemas:
+    CreateUserRequest:
+      type: object
+      required:
+        - tenantId
+        - email
+        - password
+        - roleId
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        roleId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, SUSPENDED, LOCKED, ARCHIVED]
+        avatarFileId:
+          type: string
+          format: uuid
+
+    UserSummaryDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        roleId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        avatarFileId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+
+    UserDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserSummaryDTO'
+
+    PaginatedUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummaryDTO'
+        meta:
+          type: object
+          properties:
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer

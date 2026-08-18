@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lms_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: lms_admin
+      POSTGRES_PASSWORD: lms_password_secure
+      POSTGRES_DB: lms_enterprise
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lms_admin -d lms_enterprise"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Future Job Queue (BullMQ) & Caching
+  redis:
+    image: redis:7-alpine
+    container_name: lms_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:

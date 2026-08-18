@@ -1,0 +1,51 @@
+// ---------------------------------------------------------
+// ASSET AGGREGATE (PHYSICAL FILES / URLS)
+// ---------------------------------------------------------
+
+model Asset {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  fingerprint  String @db.VarChar(255) // SHA-256 hash for deduplication
+  originalName String @db.VarChar(500)
+  mimeType     String @db.VarChar(100)
+  sizeBytes    BigInt @default(0)
+
+  storageProvider StorageProviderType @default(LOCAL)
+  storageKey      String              @db.VarChar(1000) // Object key / S3 path
+
+  status           AssetStatus     @default(UPLOADING)
+  virusStatus      VirusScanStatus @default(PENDING)
+  processingStatus String          @default("PENDING") // e.g., "COMPLETED", "FAILED"
+
+  // Normalized specific metadata for easy querying
+  width           Int?
+  height          Int?
+  durationSeconds Int?
+  pageCount       Int?
+  metadata        Json? // EXIF, Codec info, etc.
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  materialVersions MaterialVersion[]
+  assignments      Assignment[]
+  submissions      Submission[]      @relation("SubmissionAttachment")
+  announcements    Announcement[]
+  eltRecordings    EltAttempt[]
+  paiRecitations   PaiRecitation[]
+  artsArtworks     ArtsArtwork[]
+  artsPerformances ArtsPerformance[]
+  artsFrames       ArtsStoryboardFrame[]
+
+  @@unique([tenantId, fingerprint]) // Deduplication constraint
+  @@index([tenantId, deletedAt])
+  @@index([status])
+  @@index([virusStatus])
+  @@map("assets")
+}

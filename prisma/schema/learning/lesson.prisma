@@ -1,0 +1,57 @@
+// ---------------------------------------------------------
+// CHAPTER
+// ---------------------------------------------------------
+
+model Chapter {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+  courseId String @db.Uuid
+
+  title       String           @db.VarChar(255)
+  description String?          @db.Text
+  order       Int              @db.SmallInt
+  visibility  VisibilityStatus @default(VISIBLE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Uses Cascade Delete, no soft delete needed for child entities
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, order]) // Ensure sequential ordering
+  @@index([tenantId])
+  @@map("chapters")
+}
+
+// ---------------------------------------------------------
+// LESSON
+// ---------------------------------------------------------
+
+model Lesson {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  chapterId String @db.Uuid
+
+  title       String       @db.VarChar(255)
+  description String?      @db.Text
+  order       Int          @db.SmallInt
+  status      LessonStatus @default(DRAFT)
+
+  estimatedDuration Int   @default(0) // In minutes
+  completionRule    Json? // AST JSON for Rule Engine (e.g., {"type": "AND", "rules": [...]})
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  materials Material[]
+  // LessonProgress projections will link here
+
+  @@unique([chapterId, order])
+  @@index([tenantId])
+  @@index([status])
+  @@map("lessons")
+}

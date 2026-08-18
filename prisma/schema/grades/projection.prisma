@@ -1,0 +1,46 @@
+// ---------------------------------------------------------
+// GRADE PROJECTIONS (READ MODEL ONLY)
+// Do not update manually. Driven by Ledger Engine.
+// ---------------------------------------------------------
+
+model GradeProjection {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  studentId  String @db.Uuid
+  courseId   String @db.Uuid
+  semesterId String @db.Uuid
+
+  finalScore  Float   @db.Real
+  letterGrade String  @db.VarChar(5) // e.g. "A+", "B-"
+  isPassed    Boolean
+
+  lastLedgerId String @db.Uuid // Pointer to the last processed ledger entry
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, courseId])
+  @@index([tenantId])
+  @@map("grade_projections")
+}
+
+model CompetencySummary {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  studentId  String @db.Uuid
+  courseId   String @db.Uuid
+  semesterId String @db.Uuid
+
+  tpId         String       @db.VarChar(100) // Tujuan Pembelajaran
+  masteryScore Float        @db.Real
+  masteryLevel MasteryLevel @default(NOT_EVALUATED)
+
+  needsRemedial Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, courseId, tpId])
+  @@index([tenantId])
+  @@map("competency_summaries")
+}

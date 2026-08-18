@@ -1,0 +1,70 @@
+// ---------------------------------------------------------
+// COURSE AGGREGATE ROOT
+// ---------------------------------------------------------
+
+model Course {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  // Relations to Academic & Identity Domains
+  academicYearId   String @db.Uuid
+  semesterId       String @db.Uuid
+  subjectId        String @db.Uuid
+  classId          String @db.Uuid
+  primaryTeacherId String @db.Uuid
+
+  status           CourseStatus @default(DRAFT)
+  publishedVersion Int          @default(0) // Tracks which version is currently live to students
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  academicYear   AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  semester       Semester       @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  subject        Subject        @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  class          Class          @relation(fields: [classId], references: [id], onDelete: Restrict)
+  primaryTeacher TeacherProfile @relation(fields: [primaryTeacherId], references: [id], onDelete: Restrict)
+
+  chapters           Chapter[]
+  coTeachers         CourseCoTeacher[]
+  attendanceSessions AttendanceSession[]
+  announcements      Announcement[]
+  eltActivities      EltActivity[]
+  codingChallenges   CodingChallenge[]
+  codingProjects     CodingProject[]
+  physicsSimulations PhysicsSimulation[]
+  physicsLabs        PhysicsVirtualLab[]
+  physicsQuestions   PhysicsQuestion[]
+  physicsDataExps    PhysicsDataExp[]
+  physicsVideos      PhysicsVideoNote[]
+  paiTahfidzTargets  PaiTahfidzTarget[]
+  paiDiscussions     PaiDiscussion[]
+
+  @@unique([subjectId, classId, semesterId]) // Only 1 course per subject in a class for a given semester
+  @@index([tenantId, deletedAt])
+  @@index([classId, status])
+  @@index([primaryTeacherId, status])
+  @@map("courses")
+}
+
+// Pivot table for Team Teaching
+model CourseCoTeacher {
+  id        String          @id @default(uuid()) @db.Uuid
+  courseId  String          @db.Uuid
+  teacherId String          @db.Uuid
+  role      TeacherRoleType @default(ASSISTANT)
+
+  createdAt DateTime @default(now())
+
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([courseId, teacherId])
+  @@index([teacherId])
+  @@map("course_co_teachers")
+}

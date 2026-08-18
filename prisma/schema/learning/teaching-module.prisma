@@ -1,0 +1,55 @@
+// ---------------------------------------------------------
+// TEACHING MODULE (MODUL AJAR) — Kurikulum Merdeka
+// Standalone document owned by a teacher (tenant-scoped).
+// Structure follows Panduan Pembelajaran & Asesmen Kemendikbud.
+// ---------------------------------------------------------
+
+model TeachingModule {
+  id          String  @id @default(uuid()) @db.Uuid
+  version     Int     @default(1)
+  tenantId    String  @db.Uuid
+  createdById String? @db.Uuid
+
+  // --- Identitas / Informasi Umum ---
+  title           String  @db.VarChar(255)
+  penyusun        String? @db.VarChar(255)
+  institusi       String? @db.VarChar(255)
+  tahunPenyusunan String? @db.VarChar(10)
+  jenjang         String? @db.VarChar(50)
+  kelas           String? @db.VarChar(50)
+  mataPelajaran   String? @db.VarChar(255)
+  alokasiWaktu    String? @db.VarChar(50)
+  jumlahPertemuan Int?
+
+  // --- Komponen Umum ---
+  kompetensiAwal         String? @db.Text
+  profilPelajarPancasila Json? // array of { dimensi, indikator }
+  saranaPrasarana        String? @db.Text
+  targetPesertaDidik     String? @db.Text
+  modelPembelajaran      String? @db.Text
+
+  // --- Komponen Inti ---
+  tujuanPembelajaran   String? @db.Text
+  pemahamanBermakna    String? @db.Text
+  pertanyaanPemantik   String? @db.Text
+  kegiatanPembelajaran Json? // array of { pertemuan, pendahuluan, inti, penutup }
+  asesmen              Json? // { diagnostik, formatif, sumatif }
+  pengayaanRemedial    String? @db.Text
+  refleksiGuru         String? @db.Text
+  refleksiPesertaDidik String? @db.Text
+
+  // --- Lampiran ---
+  lkpd          String? @db.Text
+  bahanBacaan   String? @db.Text
+  glosarium     String? @db.Text
+  daftarPustaka String? @db.Text
+
+  status    TeachingModuleStatus @default(DRAFT)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  deletedAt DateTime?
+
+  @@index([tenantId, deletedAt])
+  @@index([createdById, deletedAt])
+  @@map("teaching_modules")
+}

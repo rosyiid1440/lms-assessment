@@ -1,0 +1,71 @@
+// ---------------------------------------------------------
+// STUDENT ENROLLMENT AGGREGATE
+// ---------------------------------------------------------
+
+model StudentEnrollment {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  studentId  String @db.Uuid
+  classId    String @db.Uuid
+  semesterId String @db.Uuid
+
+  status EnrollmentStatus @default(PENDING)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  // Relations
+  student  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  class    Class          @relation(fields: [classId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  semester Semester       @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([studentId, semesterId]) // Replaced unique constraint to allow TRANSFERRED history
+  @@index([tenantId, deletedAt])
+  @@index([classId, status])
+  @@index([studentId, status])
+  @@map("student_enrollments")
+}
+
+// ---------------------------------------------------------
+// TEACHER ASSIGNMENT AGGREGATE
+// ---------------------------------------------------------
+
+model TeacherAssignment {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  teacherId  String @db.Uuid
+  classId    String @db.Uuid
+  subjectId  String @db.Uuid // Must match a Subject domain entity later
+  semesterId String @db.Uuid
+
+  status     TeacherAssignmentStatus @default(ASSIGNED)
+  isHomeroom Boolean                 @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  // Relations
+  teacher  TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  class    Class          @relation(fields: [classId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  semester Semester       @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Note: subject relation will be added when Course/Learning domain schema is generated
+
+  @@unique([teacherId, classId, subjectId, semesterId]) // A teacher cannot be assigned to the exact same subject+class twice in a semester
+  @@index([tenantId, deletedAt])
+  @@index([classId, status])
+  @@index([teacherId, status])
+  @@map("teacher_assignments")
+}

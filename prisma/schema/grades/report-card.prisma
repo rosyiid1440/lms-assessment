@@ -1,0 +1,59 @@
+// ---------------------------------------------------------
+// REPORT CARD SNAPSHOTS & APPROVAL WORKFLOW
+// ---------------------------------------------------------
+
+model ReportCard {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+
+  studentId  String @db.Uuid
+  semesterId String @db.Uuid
+
+  status ReportCardStatus @default(DRAFT)
+
+  // Snapshot Data (JSON for layout flexibility, items for structured querying)
+  studentSnapshotInfo Json
+  attendanceSummary   Json
+  p5ProjectSummary    Json?
+
+  homeroomTeacherNote String? @db.Text
+
+  // Digital Signatures
+  homeroomSignatureId  String? @db.Uuid // Asset ID
+  principalSignatureId String? @db.Uuid // Asset ID
+  verificationQrHash   String? @unique @db.VarChar(255)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt // Tracks status changes
+  publishedAt DateTime?
+
+  items ReportCardItem[]
+
+  @@unique([studentId, semesterId]) // Only one final report card per student per semester
+  @@index([tenantId])
+  @@index([status])
+  @@map("report_cards")
+}
+
+model ReportCardItem {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @db.Uuid
+  reportCardId String @db.Uuid
+
+  courseId    String @db.Uuid
+  subjectName String @db.VarChar(255) // Snapshot text
+  teacherName String @db.VarChar(255) // Snapshot text
+
+  finalScore  Float  @db.Real
+  letterGrade String @db.VarChar(5)
+
+  // Kurikulum Merdeka descriptions based on TP mastery
+  highestCompetencyDesc String @db.Text
+  lowestCompetencyDesc  String @db.Text
+
+  reportCard ReportCard @relation(fields: [reportCardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([tenantId])
+  @@map("report_card_items")
+}

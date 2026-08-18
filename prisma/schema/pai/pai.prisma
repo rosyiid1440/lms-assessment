@@ -1,0 +1,267 @@
+// ---------------------------------------------------------
+// PAI — PENDIDIKAN AGAMA ISLAM
+// ---------------------------------------------------------
+
+// 1. TAHDZIH/TAHFIDZ + MURAJA AH
+model PaiTahfidzTarget {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  courseId  String? @db.Uuid
+  createdById String? @db.Uuid
+
+  title      String @db.VarChar(255)
+  description String @db.Text
+  surah      String @db.VarChar(100)  // "Al-Baqarah 1-5" , "Juz 30", ...
+  surahType  PaiSurahType @default(SURAH)
+  targetAyat Int @default(1)
+
+  status     VisibilityStatus @default(VISIBLE)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  recitations PaiRecitation[]
+
+  @@index([tenantId, deletedAt])
+  @@map("pai_tahfidz_targets")
+}
+
+// student's per-target recitation
+model PaiRecitation {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  targetId  String @db.Uuid
+  studentId String @db.Uuid
+
+  status   PaiRecitationStatus @default(SUBMITTED)
+  // audio file (multipart via /assets then storageKey saved here)
+  recordingFileId String? @db.Uuid
+  recordingUrl    String? @db.VarChar(1000)
+  recordingDurationSec Int? @db.SmallInt
+  ayatProgress Int @default(0) // how many ayat recited this week
+  // teacher feedback on tajwid & makhraj
+  comment  String? @db.Text
+  score    Float? @db.Real
+  tajwidScore Float? @db.Real
+  makhrajScore Float? @db.Real
+  gradedAt DateTime?
+  gradedById String? @db.Uuid
+  studentComment String? @db.Text
+  submittedAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  target PaiTahfidzTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  recordingFile Asset? @relation(fields: [recordingFileId], references: [id], onDelete: SetNull)
+
+  @@unique([targetId, studentId])
+  @@index([tenantId, studentId])
+  @@map("pai_recitations")
+}
+
+// murajaah audio library
+model PaiMurottal {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  title     String @db.VarChar(255)
+  surah     String @db.VarChar(100)
+  qari      String @db.VarChar(100)
+  url       String @db.VarChar(1000)
+  status    VisibilityStatus @default(VISIBLE)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("pai_murottal")
+}
+
+// 2. DAILY IBADAH JOURNAL
+model PaiIbadahLog {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  studentId String @db.Uuid
+
+  journalDate   DateTime @default(now())
+  ibadahType    PaiIbadahType
+  label         String @db.VarChar(120)
+  done          Boolean @default(false)
+  note          String? @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, studentId, journalDate])
+  @@map("pai_ibadah_logs")
+}
+
+model PaiIbadahGoal {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  studentId String @db.Uuid
+
+  title     String @db.VarChar(255)
+  type      PaiIbadahType
+  targetCount Int @default(7)   // e.g. 7x in a week
+  achievedCount Int @default(0)
+  period    String @db.VarChar(20) // WEEK | MONTH
+  status    PaiGoalStatus @default(ACTIVE)
+  rewardPoints Int @default(10)
+  earnedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, studentId])
+  @@map("pai_ibadah_goals")
+}
+
+// 3. MEDIA LIBRARY — timeline, dalil, ibadah simulation
+model PaiTimelineEvent {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  title     String @db.VarChar(255)
+  year      Int
+  periodLabel String @db.VarChar(50)
+  description String @db.Text
+  figure    String @db.VarChar(100)  // tokoh
+  location  String? @db.VarChar(100)
+  icon      String? @db.VarChar(50)
+  category  String? @db.VarChar(50)
+  orderIndex Int @default(0)
+  status      VisibilityStatus @default(VISIBLE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@map("pai_timeline")
+}
+
+model PaiDalil {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  source    String @db.VarChar(100)  // "QS. Al-Hujurat 49:12" / "HR. Bukhari"
+  arabic    String @db.Text
+  latin     String? @db.Text
+  translation String @db.Text
+  tafsir    String? @db.Text
+  theme     String @db.VarChar(100)   // "Kejujuran", "Keluarga"
+  tags      String? @db.VarChar(255)
+  category  String? @db.VarChar(50)
+  status      VisibilityStatus @default(VISIBLE)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, theme])
+  @@map("pai_dalil")
+}
+
+// 4. DISCUSSION FORUM + PRIVATE Q&A
+model PaiDiscussion {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  courseId  String? @db.Uuid
+  createdById String @db.Uuid
+
+  title     String @db.VarChar(255)
+  body      String @db.Text
+  category  String @db.VarChar(50)
+  isPrivate Boolean @default(false)
+  status    PaiDiscussionStatus @default(OPEN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  replies PaiDiscussionReply[]
+
+  @@index([tenantId, deletedAt])
+  @@map("pai_discussion_forums")
+}
+
+model PaiDiscussionReply {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  forumId   String @db.Uuid
+  authorId  String @db.Uuid
+
+  body String @db.Text
+  createdAt DateTime @default(now())
+
+  forum PaiDiscussion @relation(fields: [forumId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, forumId])
+  @@map("pai_discussion_replies")
+}
+
+// Private Q&A with ustadz
+model PaiPrivateQuestion {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  studentId String @db.Uuid
+  answeredById String? @db.Uuid
+
+  question String @db.Text
+  topic    String? @db.VarChar(100)
+  answer   String? @db.Text
+  status   PaiQuestionStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  answeredAt DateTime?
+
+  @@index([tenantId, studentId])
+  @@map("pai_private_questions")
+}
+
+// 5. CHARACTER ASSESSMENT — moral case + story quiz
+model PaiMoralCase {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  title     String @db.VarChar(255)
+  scenario  String @db.Text
+  guideValues String @db.Text
+  status    VisibilityStatus @default(VISIBLE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@map("pai_moral_cases")
+}
+
+model PaiMoralSubmission {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  caseId    String @db.Uuid
+  studentId String @db.Uuid
+
+  answer  String @db.Text
+  status  PaiMoralStatus @default(SUBMITTED)
+  score   Float? @db.Real
+  feedback String? @db.Text
+  createdAt DateTime @default(now())
+  gradedAt DateTime?
+
+  @@index([tenantId, caseId, studentId])
+  @@map("pai_moral_submissions")
+}
+
+model PaiStoryQuiz {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  createdById String? @db.Uuid
+
+  title     String @db.VarChar(255)
+  description String @db.Text
+  story     String @db.Text
+  questions Json? // [{ q, options[], correct, explain }]
+  status    PaiStoryStatus @default(PUBLISHED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@map("pai_story_quizzes")
+}

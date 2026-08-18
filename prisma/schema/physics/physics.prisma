@@ -1,0 +1,157 @@
+// ---------------------------------------------------------
+// PHYSICS LEARNING SUITE
+// ---------------------------------------------------------
+
+// 1. INTERACTIVE SIMULATIONS (kinematic frameworks the client renders)
+model PhysicsSimulation {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  courseId  String? @db.Uuid
+  createdById String? @db.Uuid
+
+  title          String @db.VarChar(255)
+  description    String @db.Text
+  type           PhysicsSimulationType @default(PROJECTILE)
+  params         Json?  // default variable ranges as { label, min, max, step, default }
+  status         VisibilityStatus @default(VISIBLE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, deletedAt])
+  @@map("physics_simulations")
+}
+
+// 2. VIRTUAL LAB EXPERIMENTS (data collection with virtual instruments)
+model PhysicsVirtualLab {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  courseId  String? @db.Uuid
+  createdById String? @db.Uuid
+
+  title       String @db.VarChar(255)
+  description String @db.Text
+  topic       String? @db.VarChar(120)
+  instruments Json? // [{ name, unit, type }]
+  procedure   Json? // steps[] text
+  status      PhysicsLabStatus @default(DRAFT)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, deletedAt])
+  @@map("physics_virtual_labs")
+}
+
+// 3. PARAMETRIC / ALGORITHMIC QUESTION BANK with step-by-step feedback
+model PhysicsQuestion {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  courseId  String? @db.Uuid
+  createdById String? @db.Uuid
+
+  title         String @db.VarChar(255)
+  body          String @db.Text   // stem with {var} placeholders
+  field         PhysicsQuestionField @default(MECHANICS)
+  format        PhysicsQuestionFormat @default(PARAMETRIC)
+  difficulty    ChallengeDifficulty @default(EASY)
+  points        Int @default(10)
+
+  variables     Json? // [{ key, min, max, step, decimals }] -> randomized per student
+  formulaSteps  String? @db.Text // JS expression computing the numeric answer from vars
+  answerKey     Json? // optional per-step expected numeric answer
+  answerUnits   Json? // { unit: string }
+  hint          String? @db.Text
+  explanation   String? @db.Text
+  status        VisibilityStatus @default(VISIBLE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  attempts PhysicsQuestionAttempt[]
+
+  @@index([tenantId, deletedAt])
+  @@map("physics_questions")
+}
+
+model PhysicsQuestionAttempt {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  questionId String @db.Uuid
+  studentId String @db.Uuid
+
+  seed       Int @default(0)     // random seed
+  variables  Json? // the actual randomized values used
+  answer     String? @db.Text    // student's answer
+  accepted   Boolean @default(false)
+  score      Int @default(0)
+  feedback   Json? // { step: [...], correct: bool }
+  attemptedAt DateTime @default(now())
+
+  question PhysicsQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, questionId])
+  @@map("physics_question_attempts")
+}
+
+// 4. DATA EXPERIMENTS + PLOTTING (student-entered tables, stats, best-fit)
+model PhysicsDataExp {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  courseId  String? @db.Uuid
+  createdById String? @db.Uuid
+
+  title       String @db.VarChar(255)
+  description String @db.Text
+  xLabel      String? @db.VarChar(100)
+  yLabel      String? @db.VarChar(100)
+  axisLen     Int @default(2)
+  status      PhysicsDataStatus @default(DRAFT)
+  data        Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, deletedAt])
+  @@map("physics_write_attempts")
+}
+
+// 5. INTERACTIVE VIDEO NOTES (video + timed quizzes) & MOTION TRACKING
+model PhysicsVideoNote {
+  id        String @id @default(uuid()) @db.Uuid
+  version   Int    @default(1)
+  tenantId  String @db.Uuid
+  courseId  String? @db.Uuid
+  createdById String? @db.Uuid
+
+  title     String @db.VarChar(255)
+  description String @db.Text
+  videoUrl  String @db.VarChar(1000) // mp4 / embedded
+  quizzes   Json?  // [{ timeSec, question, options[], correct, explain }]
+  status    PhysicsVideoStatus @default(DRAFT)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, deletedAt])
+  @@map("physics_video_notes")
+}

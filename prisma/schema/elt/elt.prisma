@@ -1,0 +1,141 @@
+// ---------------------------------------------------------
+// ELT (English Language Teaching) AGGREGATES
+// A course carries several ELT activities across 5 skills.
+// ---------------------------------------------------------
+
+model EltActivity {
+  id       String @id @default(uuid()) @db.Uuid
+  version  Int    @default(1)
+  tenantId String @db.Uuid
+  courseId String @db.Uuid
+  createdById String? @db.Uuid // teacher
+
+  title       String          @db.VarChar(255)
+  instructions String         @db.Text
+  skillType   EltSkillType
+  activityType EltActivityType
+  // per-type config payload (JSON):
+  // VOICE_RECORDING: { prompt, maxSec }
+  // PRONUNCIATION_AI: { text, targetLang }
+  // LISTENING_VIDEO: { mediaFileId, transcript }
+  // LISTENING_TRANSCRIPT: { mediaFileId, transcript, dualLang }
+  // READING_PASSAGE: { passage, glossary }
+  // WRITING_ESSAY / GRAMMAR_SPELL: { prompt, minWords, maxWords }
+  // CLOZE_TEST: { }
+  // VOCAB_FLASHCARD: { }
+  // VOCAB_QUIZ: { }
+  // DISCUSSION: { topic }
+  // PEER_REVIEW: { criteria, minReviews }
+  config     Json            @default("{}")
+
+  status     VisibilityStatus @default(VISIBLE)
+  cefrLevel  String?         @db.VarChar(16)
+
+  publishedAt DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  items     EltItem[]
+  attempts  EltAttempt[]
+  comments  EltComment[]
+
+  @@index([tenantId, deletedAt])
+  @@index([courseId, skillType])
+  @@map("elt_activities")
+}
+
+// Reusable item bank: flashcards (front/back), cloze sentences (sentence with answer),
+// vocab quiz questions (question/options/correct)
+model EltItem {
+  id           String @id @default(uuid()) @db.Uuid
+  version      Int    @default(1)
+  tenantId     String @db.Uuid
+  activityId   String @db.Uuid
+  itemType     String @db.VarChar(32) // FLASHCARD | CLOZE | QUIZ
+  order        Int    @default(0) @db.SmallInt
+  front        String @db.Text      // flashcard front / cloze sentence / quiz question
+  back         String? @db.Text     // flashcard back / cloze answer / quiz correct
+  options      Json?                // quiz choices array, cloze distractors
+  audioUrl     String?
+  hint         String?              @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activity EltActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId, order])
+  @@map("elt_items")
+}
+
+// Student attempt per activity.
+model EltAttempt {
+  id            String @id @default(uuid()) @db.Uuid
+  version       Int    @default(1)
+  tenantId      String @db.Uuid
+  activityId    String @db.Uuid
+  studentId     String @db.Uuid
+  courseId      String @db.Uuid
+
+  status      EltAttemptStatus @default(SUBMITTED)
+  // text answer (writing / cloze answers / forum post)
+  content     String?                @db.Text
+  // voice/video recording file (VOICE_RECORDING, PRONUNCIATION_AI)
+  recordingFileId String?            @db.Uuid
+  recordingDurationSec Int?          @db.SmallInt
+  // recognition score (0-100) for PRONUNCIATION_AI
+  recognitionScore Float?            @db.Real
+  // cloze / flashcard answers in JSON
+  answers     Json?
+  selfGrade   Float?                 @db.Real
+  finalGrade  Float?                 @db.Real
+  feedback    String?                @db.Text
+  gradedAt    DateTime?
+  gradedById  String?                @db.Uuid
+
+  submittedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activity    EltActivity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  recordingFile Asset?     @relation(fields: [recordingFileId], references: [id], onDelete: SetNull)
+
+  reviews EltComment[]
+
+  @@unique([activityId, studentId])
+  @@index([tenantId])
+  @@index([activityId, status])
+  @@map("elt_attempts")
+}
+
+// Threaded discussion + peer review comments.
+model EltComment {
+  id          String @id @default(uuid()) @db.Uuid
+  tenantId    String @db.Uuid
+  activityId  String @db.Uuid
+  authorId    String @db.Uuid      // user id (student or teacher)
+  parentId    String? @db.Uuid
+  // for audio discussion, a recorded voice note
+  audioFileId String? @db.Uuid
+  targetAsset String? @db.VarChar(32) // || COMMENT | FEEDBACK | PEER_REVIEW
+  // for peer review of an attempt
+  attemptId   String? @db.Uuid
+  content     String @db.Text
+  rating      Int?   @db.SmallInt // peer review rating 1-5
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activity   EltActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  stock      EltComment? @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    EltComment[] @relation("CommentThread")
+  attempt    EltAttempt?  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([activityId])
+  @@map("elt_comments")
+}

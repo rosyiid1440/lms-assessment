@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Grade Ledger Entry & Projection Recalculation",
+    "concurrency": 100,
+    "totalOperations": 500,
+    "metrics": {
+      "min": 10.776499999999942,
+      "p50": 97.37310000000002,
+      "avg": 103.38551360000002,
+      "p95": 237.56240000000003,
+      "p99": 278.29960000000005,
+      "max": 279.54150000000004,
+      "throughputSec": 576.7892174562256,
+      "errorRate": 0
+    },
+    "resources": {
+      "maxMemoryMb": 44.95823669433594,
+      "eventLoopDelayP99Ms": 15.368191
+    },
+    "passed": false
+  },
+  {
+    "name": "Student Dashboard Projection Read",
+    "concurrency": 200,
+    "totalOperations": 1000,
+    "metrics": {
+      "min": 56.17000000000007,
+      "p50": 63.92890000000034,
+      "avg": 72.14819230000002,
+      "p95": 108.64379999999983,
+      "p99": 109.73329999999987,
+      "max": 110.10129999999981,
+      "throughputSec": 2674.3144929660148,
+      "errorRate": 0
+    },
+    "resources": {
+      "maxMemoryMb": 8.456901550292969,
+      "eventLoopDelayP99Ms": 23.969791
+    },
+    "passed": false
+  }
+]
